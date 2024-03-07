@@ -1,4 +1,5 @@
 pub mod conputer;
+pub mod bed;
 pub mod officeworker;
 
 use std::fmt::Debug;

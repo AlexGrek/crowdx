@@ -3,9 +3,7 @@ use core::fmt::Debug;
 use std::{borrow::BorrowMut, collections::LinkedList};
 
 use crate::{
-    core::position::{Ps, PsProvider},
-    state::Reality,
-    worldmap::Cellmap,
+    core::position::{Ps, PsProvider}, gameplay::gametime::{Time, TimeSpan}, state::Reality, worldmap::Cellmap
 };
 
 use super::{
@@ -24,13 +22,13 @@ pub trait SaneMovingUnit {
 }
 
 #[derive(Debug)]
-pub struct SelfAware {
-    pub routine: Box<dyn Routine>,
+pub struct SelfAware<T: Routine> {
+    pub routine: Box<T>,
     pub sanity: Mutex<Sanity>,
 }
 
-impl SelfAware {
-    pub fn new(speed: f32, pos: Ps, routine: Box<dyn Routine>) -> Self {
+impl<T: Routine> SelfAware<T> {
+    pub fn new(speed: f32, pos: Ps, routine: Box<T>) -> Self {
         let sanity = Sanity::new(speed, pos);
         Self {
             routine,
@@ -51,7 +49,7 @@ impl SelfAware {
     }
 }
 
-impl PsOffsetProvider for SelfAware {
+impl<T: Routine> PsOffsetProvider for SelfAware<T> {
     fn get_ps(&self) -> Ps {
         self.sanity.lock().get_current_ps()
     }
@@ -113,10 +111,23 @@ impl Sanity {
         return self.mind.intentions.intentions_left() == 0;
     }
 
+    pub fn reset_intentions(&mut self) {
+        self.mind.intentions.clear_all()
+    }
+
+    pub fn reset_intentions_lower_than(&mut self, priority: i32) {
+        self.mind.intentions.clear_lower_than(priority)
+    }
+
     pub fn intend_with_priority(&mut self, priority: i32, intention: IntentionClass) {
         self.mind
             .intentions
             .intend(Intention::new(priority, intention))
+    }
+
+    pub fn intend_with_priority_timed(&mut self, priority: i32, intention: IntentionClass, time: &Time) {
+        self.mind.save_time(time);
+        self.intend_with_priority(priority, intention);
     }
 
     pub fn intend(&mut self, intention: IntentionClass) {
@@ -277,10 +288,20 @@ impl Sanity {
                 }
                 IntentionClass::UseInteractiveOnce() => todo!(),
                 IntentionClass::UseInteractiveCycles(_) => todo!(),
-                IntentionClass::UseInteractiveMinutes(_) => todo!(),
+                IntentionClass::UseInteractiveMinutes(minutes) => return self.use_interactive_minutes(minutes, reality),
             }
         }
         IntentionCompleted::Undefined
+    }
+
+    fn use_interactive_minutes(&mut self, minutes: isize, reality: &Reality) -> IntentionCompleted {
+        if self.mind.time_reference.elapsed(&reality.time) >= TimeSpan::new(minutes) {
+            self.mind.intentions.finish_current();
+            println!("Use interactive finished");
+            IntentionCompleted::Success
+        } else {
+            IntentionCompleted::None
+        }
     }
 
     fn process_destination_intention(

@@ -8,7 +8,7 @@ use crate::{
     worldmap::{Cell, Cellmap, TileReference},
 };
 
-const IMPASSABLE_TILES: [&'static str; 4] = ["block", "wall", "conputer", "bed"];
+const IMPASSABLE_TILES: [&'static str; 3] = ["block", "wall", "conputer"];
 
 pub struct MyTiledReader;
 

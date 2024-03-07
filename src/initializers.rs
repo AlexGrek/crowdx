@@ -1,39 +1,65 @@
 use crate::{
     behavior::{
         carriable::carriableitem::CarriableItemHandle,
-        dog::{self, Dog},
+        dog,
         item_types::{BONE, TRASHCAN},
-        messaging::MessagingHost,
     },
-    gameplay::ent::{conputer::Conputer, Grass},
+    gameplay::ent::{
+        officeworker::OfficeWorker, MapEntityObject,
+    },
     state::WorldState,
     worldmap::{Cellmap, TileReference},
     Bone, TrashCan, RES_I32,
 };
-use comfy::*;
+use comfy::{num_traits::ToPrimitive, *};
 
-pub fn tile_object_for_tile(
-    tile: &TileReference,
-) -> Box<dyn crate::gameplay::ent::MapEntityObject> {
-    match tile.klass.as_str() {
-        "conputer" => {
-            let x = tile
-                .props
-                .get("x")
-                .map(|c| TileReference::extract_int_value(c))
-                .flatten()
-                .unwrap_or(0);
-            let y = tile
-                .props
-                .get("y")
-                .map(|c| TileReference::extract_int_value(c))
-                .flatten()
-                .unwrap_or(0);
-            let pc = Conputer::new(ivec2(x, y));
-            println!("Cnputer created: {:?}", pc);
-            Box::new(pc)
+pub fn spawn_object_sprite<T, F>(x:i32, y: i32, tile: &TileReference, mut size: Vec2, name: String, spawner: F)
+where
+    F: Fn() -> T,
+    T: MapEntityObject + 'static,
+{
+    match tile.animated {
+        Some(anim) => {
+            size.x = size.x / anim.steps as f32;
+            // println!("Animated tile: {:?} {:?}\n{:?}", anim, tile, size);
+            let mut builder = AnimatedSpriteBuilder::new().add_animation(
+                "base",
+                anim.delay,
+                true,
+                AnimationSource::Atlas {
+                    name: name.to_owned().into(),
+                    offset: ivec2(0, 0),
+                    step: ivec2(RES_I32, 0),
+                    size: isplat(RES_I32),
+                    frames: anim.steps.clone(),
+                },
+            );
+            builder.z_index = 1;
+            let mut animated = builder.build();
+            animated.play("base");
+            println!("Animated sprite (x: {}, y: {}) size: {:?}", x, y, vec2(x as f32, y as f32) + ((size - vec2(1.0, 1.0)) / vec2(2.0, 2.0)));
+            commands().spawn((
+                animated,
+                Transform::position(
+                    vec2(x as f32, y as f32) + ((size - vec2(1.0, 1.0)) / vec2(2.0, 2.0)),
+                ),
+                spawner(),
+            ));
         }
-        _x => Box::new(Grass {}),
+        None => {
+            commands().spawn((
+                Sprite::new(name.to_owned(), size, 1, WHITE).with_rect(
+                    0,
+                    0,
+                    tile.size.x,
+                    tile.size.y,
+                ),
+                Transform::position(
+                    vec2(x as f32, y as f32) + ((size - vec2(1.0, 1.0)) / vec2(2.0, 2.0)),
+                ),
+                spawner(),
+            ));
+        }
     }
 }
 
@@ -98,6 +124,21 @@ pub fn spawn_dogs(count: isize, cellmap: &Cellmap, x_limit: usize, y_limit: usiz
     }
 }
 
+pub fn spawn_workers(count: isize, cellmap: &Cellmap, x_limit: usize, y_limit: usize) {
+    println!("Spawning {} workers...", count);
+    for i in 1..=count {
+        let mut regenerate = true;
+        while regenerate {
+            let x = usize::gen_range(0, x_limit);
+            let y = usize::gen_range(0, y_limit);
+            if cellmap.get_xy(x, y).is_passable(true) {
+                regenerate = false;
+                spawn_worker(format!("Worker {}", i), x, y);
+            }
+        }
+    }
+}
+
 pub fn spawn_dog(name: String, x: usize, y: usize) {
     println!("++ {:?} (x: {}, y: {})", name, x, y);
     crate::lazy_load_texture("dog48_idle.png".into());
@@ -125,4 +166,14 @@ pub fn spawn_dog(name: String, x: usize, y: usize) {
     //     Transform::position(vec2(x.to_f32().unwrap(), y.to_f32().unwrap())),
     //     dog::Dog::new(name.to_string(), f32::gen_range(3.0, 10.0), (x, y).into()),
     // ));
+}
+
+pub fn spawn_worker(name: String, x: usize, y: usize) {
+    println!("WORKER {:?} (x: {}, y: {})", name, x, y);
+    crate::lazy_load_texture("wat.png".into());
+    commands().spawn((
+        Sprite::new("wat.png", vec2(1.0, 1.0), 1, WHITE).with_rect(0, 0, RES_I32, RES_I32),
+        Transform::position(vec2(x.to_f32().unwrap(), y.to_f32().unwrap())),
+        OfficeWorker::new(name.to_string(), f32::gen_range(3.0, 10.0), (x, y).into()),
+    ));
 }

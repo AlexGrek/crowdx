@@ -1,4 +1,4 @@
-use comfy::{Entity, HashMap, Mutex};
+use comfy::{Entity, HashMap, IVec2, Mutex};
 
 use crate::{behavior::creatures::PsOffsetProvider, core::position::Ps};
 
@@ -8,22 +8,31 @@ pub struct InteractiveObjectHandle {
     pub item_type: &'static str,
     pub used_by: Option<Entity>,
     pub position: Ps,
-    pub consumed: bool
+    pub interaction_ps_offset: Option<IVec2>,
+    pub assigned: bool
 }
 
 impl InteractiveObjectHandle {
-    pub fn new(item_type: &'static str, entity: Entity, position: Ps) -> Self {
+    pub fn new(item_type: &'static str, entity: Entity, position: Ps, interaction_offset: Option<IVec2>) -> Self {
         Self {
             item_id: entity,
             used_by: None,
             position,
-            consumed: false,
-            item_type
+            assigned: false,
+            item_type,
+            interaction_ps_offset: interaction_offset
         }
     }
 
     pub fn available(&self) -> bool {
-        !self.consumed && self.used_by.is_none()
+        !self.assigned && self.used_by.is_none()
+    }
+
+    pub fn get_interactive_ps(&self) -> Ps {
+        match self.interaction_ps_offset {
+            Some(offset) => (self.position + offset).into(),
+            None => self.position
+        }
     }
 
     pub fn take(&mut self, entity: Entity) {
@@ -34,8 +43,8 @@ impl InteractiveObjectHandle {
         self.used_by = None
     }
 
-    pub fn consume(&mut self) {
-        self.consumed = true
+    pub fn assign(&mut self) {
+        self.assigned = true
     }
 }
 

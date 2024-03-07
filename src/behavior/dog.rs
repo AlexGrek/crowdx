@@ -17,7 +17,7 @@ use super::{
 };
 
 #[derive(Debug, Clone)]
-struct DogRoutine {
+pub struct DogRoutine {
     hunter: EntityTypeHunter,
 }
 
@@ -66,7 +66,7 @@ impl super::sanity::Routine for DogRoutine {
 pub struct Dog {
     pub name: String,
     pub initialized: bool,
-    pub sa: SelfAware,
+    pub sa: SelfAware<DogRoutine>,
 }
 
 impl Dog {
@@ -94,7 +94,7 @@ impl Initializable for Dog {
     ) {
         let mut msg = reality.messaging.lock();
         let handle = MessagingHost::new();
-        println!("Initialized Trashcan {:?}: {:?}", entity, handle);
+        println!("Initialized doge {:?}: {:?}", entity, handle);
         msg.insert(*entity, handle);
         self.initialized = true;
     }

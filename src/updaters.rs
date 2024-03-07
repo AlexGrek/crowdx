@@ -3,7 +3,9 @@ use crate::behavior::dog;
 use crate::behavior::routing::PathfindRouter;
 use crate::core::anycellmap::AnyCellmap;
 use crate::core::Initializable;
+use crate::gameplay::ent::bed::Bed;
 use crate::gameplay::ent::conputer::Conputer;
+use crate::gameplay::ent::officeworker::OfficeWorker;
 use crate::initializers::create_bones;
 use crate::state::WorldState;
 use comfy::hecs::Component;
@@ -91,9 +93,17 @@ pub fn update_init<T: Initializable + Component>(state: &mut WorldState, _c: &mu
 
 pub fn update_initializable_all(state: &mut WorldState, c: &mut EngineContext, dt: f32) {
     update_init::<TrashCan>(state, c, dt);
+    // println!(" ---> TrashCans initialized");
     update_init::<Bone>(state, c, dt);
+    // println!(" ---> Bones initialized");
     update_init::<Conputer>(state, c, dt);
+    // println!(" ---> Conputers initialized");
+    update_init::<Bed>(state, c, dt);
+    // println!(" ---> Beds initialized");
     update_init::<dog::Dog>(state, c, dt);
+    // println!(" ---> Dogs initialized");
+    update_init::<OfficeWorker>(state, c, dt);
+    // println!(" ---> Workers initialized");
 }
 
 pub fn update_selection(state: &mut WorldState, _c: &mut EngineContext, _dt: f32) {
@@ -343,4 +353,100 @@ pub fn update_time(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
         WHITE,
         comfy::TextAlign::Center,
     );
+}
+
+pub fn update_sane_objects(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
+    let wrld = world();
+    let mut queried = wrld.query::<(&mut OfficeWorker, &mut Transform)>();
+    let items = queried.iter().collect::<Vec<_>>();
+
+    if !state.paused {
+        items.into_par_iter().for_each(|data| {
+            let (entity, (dog, _)) = data;
+            if !dog.initialized {
+                return;
+            }
+            dog.sa.sanity.lock().move_direction_if_can(dt);
+            if let Some(order) = state.dog_order {
+                dog.sa.sanity.lock().intend_go_to(order);
+            }
+            let intention_result = dog.sa.sanity.lock().think_intention_level_if_not_moving(
+                entity,
+                &state.reality,
+            );
+            dog.sa.think_routine_level(
+                intention_result,
+                &state.reality,
+                entity,
+                dt,
+            );
+        });
+    }
+
+    let mut items_again = queried.iter().collect::<Vec<_>>();
+
+    comfy::ChooseRandom::shuffle(&mut items_again);
+
+    for (_entity, (dog, transform)) in items_again.into_iter() {
+        transform.position = dog.sa.get_exact_pos();
+
+        if state.paused {
+            if dog.sa.get_ps() == state.selected_cell && state.selected {
+                let mut text_params = TextParams::default();
+                text_params.color = WHITE;
+                text_params.font.size = 8.0;
+                comfy::draw_text_ex(
+                    &format!("dog: {:?}", dog),
+                    transform.position,
+                    comfy::TextAlign::TopLeft,
+                    text_params,
+                );
+
+                let tgt = dog.sa.sanity.lock().mv.current_move_path.target.clone();
+
+                if let Some(target) = tgt {
+                    draw_rect_outline(
+                        vec2(target.x.to_f32().unwrap(), target.y.to_f32().unwrap()),
+                        splat(0.9),
+                        0.6,
+                        comfy::RED,
+                        1,
+                    );
+                }
+
+                for step in dog
+                    .sa
+                    .sanity
+                    .lock()
+                    .mv
+                    .current_move_path
+                    .calculated_steps
+                    .iter()
+                {
+                    draw_rect_outline(
+                        vec2(step.x.to_f32().unwrap(), step.y.to_f32().unwrap()),
+                        splat(0.7),
+                        0.1,
+                        ORANGE_RED,
+                        1,
+                    );
+                }
+            }
+        }
+
+        let mut sanity = dog.sa.sanity.lock();
+
+        if sanity.carrier.has_anything() {
+            let ps_offset = sanity.mv.as_ps_offset_container();
+            sanity
+                .carrier
+                .update_positions(&state.reality.carriables, &ps_offset)
+        }
+
+        if !state.paused {
+            sanity.think_movement_level_if_not_moving(&mut state.reality.cellmap);
+        }
+    }
+    // print!("  ");
+    state.dog_order = None;
 }

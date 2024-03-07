@@ -12,15 +12,15 @@ pub mod core;
 use core::Initializable;
 use std::{fs::File, io::Read};
 
-use comfy::{num_traits::ToPrimitive, *};
-use gameplay::gametime::Time;
+use comfy::*;
+use gameplay::ent::Grass;
 use initializers::{create_bones, initialize_bones};
 use state::{Reality, WorldState};
 use tiledreader::*;
 use updaters::GLOBAL_HEATMAP;
 use worldmap::Cellmap;
 
-use crate::{behavior::carriable::carriableitem::CarriableItemHandle, initializers::tile_object_for_tile};
+use crate::{behavior::carriable::carriableitem::CarriableItemHandle, gameplay::ent::conputer::Conputer, initializers::spawn_object_sprite, worldmap::TileReference};
 
 const RES_I32: i32 = 48;
 
@@ -125,60 +125,33 @@ impl GameLoop for WorldState {
                         tile.size.x as f32 / RES_I32 as f32,
                         tile.size.y as f32 / RES_I32 as f32,
                     );
-                    let object = tile_object_for_tile(tile);
                     // render sprite
-                    match tile.animated {
-                        Some(anim) => {
-                            size.x = size.x / anim.steps as f32;
-                            println!("Animated tile: {:?} {:?}\n{:?}", anim, tile, size);
-                            let mut builder = AnimatedSpriteBuilder::new().add_animation(
-                                "base",
-                                anim.delay,
-                                true,
-                                AnimationSource::Atlas {
-                                    name: name.to_owned().into(),
-                                    offset: ivec2(0, 0),
-                                    step: ivec2(RES_I32, 0),
-                                    size: isplat(RES_I32),
-                                    frames: anim.steps.clone(),
-                                },
-                            );
-                            builder.z_index = 1;
-                            let mut animated = builder.build();
-                            animated.play("base");
-                            commands().spawn((
-                                animated,
-                                Transform::position(
-                                    vec2(x as f32, y as f32)
-                                        + ((size - vec2(1.0, 1.0)) / vec2(2.0, 2.0)),
-                                ),
-                                object,
-                            ));
+                    
+                    match tile.klass.as_str() {
+                        "conputer" => {
+                            let x_work = tile
+                                .props
+                                .get("x")
+                                .map(|c| TileReference::extract_int_value(c))
+                                .flatten()
+                                .unwrap_or(0);
+                            let y_work = tile
+                                .props
+                                .get("y")
+                                .map(|c| TileReference::extract_int_value(c))
+                                .flatten()
+                                .unwrap_or(0);
+                            let pc = Conputer::new(ivec2(x_work, y_work));
+                            println!("Cnputer created: {:?}", pc);
+                            spawn_object_sprite(x, y, tile, size, name, || pc.clone())
                         }
-                        None => {
-                            commands().spawn((
-                                Sprite::new(name.to_owned(), size, 1, WHITE).with_rect(
-                                    0,
-                                    0,
-                                    tile.size.x,
-                                    tile.size.y,
-                                ),
-                                Transform::position(
-                                    vec2(x as f32, y as f32)
-                                        + ((size - vec2(1.0, 1.0)) / vec2(2.0, 2.0)),
-                                ),
-                                object,
-                            ));
+                        "bed" => {
+                            let pc = gameplay::ent::bed::Bed::new();
+                            println!("Bed created: {:?}", pc);
+                            spawn_object_sprite(x, y, tile, size, name, || pc.clone());
                         }
+                        _x => spawn_object_sprite(x, y, tile, size, name, || Grass {}),
                     }
-                    // old code below
-                    // commands().spawn((
-                    //     Sprite::new(name, size, 1, WHITE).with_rect(0, 0, tile.size.x, tile.size.y),
-                    //     Transform::position(
-                    //         vec2(x as f32, y as f32) + ((size - vec2(1.0, 1.0)) / vec2(2.0, 2.0)),
-                    //     ),
-                    //     Grass,
-                    // ));
                 }
 
                 let decor_cell = decor.get_xy(x, y);
@@ -271,7 +244,13 @@ impl GameLoop for WorldState {
         initializers::create_trashcans(2, &world.reality.cellmap);
 
         initializers::spawn_dogs(
-            100,
+            10,
+            &world.reality.cellmap,
+            world.reality.cellmap.wh_usize().0,
+            world.reality.cellmap.wh_usize().1,
+        );
+        initializers::spawn_workers(
+            4,
             &world.reality.cellmap,
             world.reality.cellmap.wh_usize().0,
             world.reality.cellmap.wh_usize().1,
@@ -297,6 +276,7 @@ impl GameLoop for WorldState {
         updaters::update_initializable_all(self, c, dt);
         updaters::update_bones(self, c, dt);
         updaters::update_dogs(self, c, dt);
+        updaters::update_sane_objects(self, c, dt);
         updaters::update_camera(self, c, dt);
         updaters::update_selection(self, c, dt);
         // updaters::update_heatmap(self, c, dt);

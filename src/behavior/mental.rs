@@ -1,11 +1,20 @@
 use crate::{
-    core::position::Ps,
-    utils::anyhashmap::{create_primitive_hashmap, PrimitiveHashMap, PrimitiveValue},
+    core::position::Ps, gameplay::gametime::{Time, TimeSpan}, utils::anyhashmap::{create_primitive_hashmap, PrimitiveHashMap, PrimitiveValue}
 };
 
 const MIN_PRIORITY: i32 = -1000;
+pub const PRIORITY_ELEVATED: i32 = 5;
+pub const PRIORITY_BASE: i32 = 1;
+pub const PRIORITY_BASE_LOW: i32 = 0;
+pub const PRIORITY_BASE_LOWES: i32 = -1;
+pub const PRIORITY_HIGH: i32 = 10;
+pub const PRIORITY_LOW_NEED: i32 = 3;
+pub const PRIORITY_MEDIUM_NEED: i32 = PRIORITY_ELEVATED;
+pub const PRIORITY_HIGH_NEED: i32 = PRIORITY_HIGH + 1;
+pub const PRIORITY_DANGER: i32 = 100;
+pub const PRIORITY_UNEVITABLE: i32 = 150;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum IntentionCompleted {
     Success,
     Failure,
@@ -103,6 +112,21 @@ impl IntentionsCortex {
         intentions_counter
     }
 
+    pub fn clear_lower_than(&mut self, priority: i32) {
+        while let Some(intention) = self.current {
+            if intention.priority >= priority {
+                return;
+            }
+            // clean this one up
+            self.finish_current();
+        }
+    }
+
+    pub fn clear_all(&mut self) {
+        self.current = None;
+        self.queue.clear();
+    }
+
     fn enq(&mut self, i: Intention) {
         self.queue.push(i);
         self.queue.sort_by_key(|int| -int.priority)
@@ -168,6 +192,7 @@ pub struct Brains {
     cycles_counter: isize,
     pub mem: Memory,
     pub intentions: IntentionsCortex,
+    pub time_reference: Time
 }
 
 impl Brains {
@@ -176,6 +201,7 @@ impl Brains {
             mem: Memory::new(),
             intentions: IntentionsCortex::new(),
             cycles_counter: 0,
+            time_reference: Time::new_zero()
         }
     }
 
@@ -195,5 +221,9 @@ impl Brains {
         self.intentions
             .intend(Intention::new(priority, IntentionClass::WaitCycles(cycles)));
         self.init_cycles_counter(cycles)
+    }
+
+    pub fn save_time(&mut self, time: &Time) {
+        self.time_reference = time.snapshot()
     }
 }

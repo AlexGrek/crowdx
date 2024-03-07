@@ -1,6 +1,6 @@
 use core::fmt;
 
-use comfy::{num_traits::ToPrimitive, Vec2};
+use comfy::{num_traits::ToPrimitive, IVec2, Vec2};
 
 #[derive(Copy, Clone, PartialEq, Eq, comfy::Hash)]
 pub struct Ps {
@@ -69,6 +69,16 @@ impl std::ops::Add for Ps {
     type Output = PsSigned;
 
     fn add(self, rhs: Self) -> PsSigned {
+        let x = self.x as isize - rhs.x as isize;
+        let y = self.y as isize - rhs.y as isize;
+        return PsSigned { x: x, y: y };
+    }
+}
+
+impl std::ops::Add::<IVec2> for Ps {
+    type Output = PsSigned;
+
+    fn add(self, rhs: IVec2) -> PsSigned {
         let x = self.x as isize - rhs.x as isize;
         let y = self.y as isize - rhs.y as isize;
         return PsSigned { x: x, y: y };

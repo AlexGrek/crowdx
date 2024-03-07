@@ -100,7 +100,7 @@
    <properties>
     <property name="animated" type="bool" value="true"/>
     <property name="frames" type="int" value="11"/>
-    <property name="y" type="int" value="-1"/>
+    <property name="y" type="int" value="1"/>
    </properties>
    <image width="528" height="48" source="conputer.png"/>
   </tile>
