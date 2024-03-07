@@ -12,7 +12,7 @@ impl Carrier {
     }
 
     pub fn pick_up(&mut self, myself: Entity, handle: &mut CarriableItemHandle) {
-        println!("Taking item {:?} by {:?}", handle, myself);
+        // println!("Taking item {:?} by {:?}", handle, myself);
         handle.take(myself);
         self.items_carried.insert(handle.item_id);
     }

@@ -20,9 +20,11 @@ use tiledreader::*;
 use updaters::GLOBAL_HEATMAP;
 use worldmap::Cellmap;
 
-use crate::{behavior::carriable::carriableitem::CarriableItemHandle, gameplay::ent::conputer::Conputer, initializers::spawn_object_sprite, worldmap::TileReference};
+use crate::{behavior::carriable::carriableitem::CarriableItemHandle, core::animation::AdditionalAnimationDescr, gameplay::ent::conputer::Conputer, initializers::spawn_object_sprite, worldmap::TileReference};
 
 const RES_I32: i32 = 48;
+
+const DOG_COUNT: isize = 100;
 
 lazy_static::lazy_static! {
     static ref TEXTURES_TO_LOAD: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
@@ -52,7 +54,6 @@ impl Initializable for Bone {
     fn initialize(&mut self, entity: &Entity, transform: &mut Transform, reality: &mut Reality) {
         let mut carriables = reality.carriables.lock();
         let handle = CarriableItemHandle::new(behavior::item_types::BONE, *entity, transform.position.into());
-        println!("Initialized Bone {:?}: {:?}", entity, handle);
         carriables.insert(*entity, handle);
         self.initialized = true;
     }
@@ -143,14 +144,17 @@ impl GameLoop for WorldState {
                                 .unwrap_or(0);
                             let pc = Conputer::new(ivec2(x_work, y_work));
                             println!("Cnputer created: {:?}", pc);
-                            spawn_object_sprite(x, y, tile, size, name, || pc.clone())
+                            lazy_load_texture("conputer_idle.png".into());
+                            spawn_object_sprite(x, y, tile, size, name, || pc.clone(), vec!(
+                                AdditionalAnimationDescr::new("idle".into(), "conputer_idle.png".into(), 10, 1.0)
+                            ))
                         }
                         "bed" => {
                             let pc = gameplay::ent::bed::Bed::new();
                             println!("Bed created: {:?}", pc);
-                            spawn_object_sprite(x, y, tile, size, name, || pc.clone());
+                            spawn_object_sprite(x, y, tile, size, name, || pc.clone(), Vec::new());
                         }
-                        _x => spawn_object_sprite(x, y, tile, size, name, || Grass {}),
+                        _x => spawn_object_sprite(x, y, tile, size, name, || Grass {}, Vec::new()),
                     }
                 }
 
@@ -244,13 +248,13 @@ impl GameLoop for WorldState {
         initializers::create_trashcans(2, &world.reality.cellmap);
 
         initializers::spawn_dogs(
-            10,
+            DOG_COUNT,
             &world.reality.cellmap,
             world.reality.cellmap.wh_usize().0,
             world.reality.cellmap.wh_usize().1,
         );
         initializers::spawn_workers(
-            4,
+            5,
             &world.reality.cellmap,
             world.reality.cellmap.wh_usize().0,
             world.reality.cellmap.wh_usize().1,
@@ -275,6 +279,7 @@ impl GameLoop for WorldState {
 
         updaters::update_initializable_all(self, c, dt);
         updaters::update_bones(self, c, dt);
+        updaters::update_conputers(self, c, dt);
         updaters::update_dogs(self, c, dt);
         updaters::update_sane_objects(self, c, dt);
         updaters::update_camera(self, c, dt);

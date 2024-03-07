@@ -25,7 +25,7 @@ impl Reality {
             carriables: Arc::new(Mutex::new(HashMap::new())),
             messaging: Arc::new(Mutex::new(HashMap::new())),
             interactive: Arc::new(Mutex::new(HashMap::new())),
-            time: Time::new(0)
+            time: Time::new(16*60)
         }
     }
 }

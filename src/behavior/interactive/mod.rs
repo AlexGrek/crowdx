@@ -35,7 +35,7 @@ impl InteractiveObjectHandle {
         }
     }
 
-    pub fn take(&mut self, entity: Entity) {
+    pub fn use_by(&mut self, entity: Entity) {
         self.used_by = Some(entity)
     }
 
@@ -58,4 +58,4 @@ impl PsOffsetProvider for InteractiveObjectHandle {
     }
 }
 
-pub type InteractiveObjects = Mutex<HashMap<Entity,InteractiveObjectHandle>>;
+pub type InteractiveObjects = Mutex<HashMap<Ps,InteractiveObjectHandle>>;

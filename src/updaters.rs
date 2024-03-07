@@ -10,8 +10,8 @@ use crate::initializers::create_bones;
 use crate::state::WorldState;
 use comfy::hecs::Component;
 use comfy::{
-    commands, draw_rect_outline, is_key_pressed, splat, vec2, IntoParallelIterator, Lazy, Mutex,
-    ParallelIterator, Sprite, TextParams, BLUE, GREEN, ORANGE_RED, WHITE,
+    commands, draw_rect_outline, is_key_pressed, splat, vec2, AnimatedSprite, IntoParallelIterator,
+    Lazy, Mutex, ParallelIterator, Sprite, TextParams, BLUE, GREEN, ORANGE_RED, WHITE,
 };
 use comfy::{
     is_key_down, is_mouse_button_pressed, main_camera_mut, num_traits::ToPrimitive, world,
@@ -83,7 +83,40 @@ pub fn update_bones(state: &mut WorldState, _c: &mut EngineContext, _dt: f32) {
     }
 }
 
-pub fn update_init<T: Initializable + Component>(state: &mut WorldState, _c: &mut EngineContext, _dt: f32) {
+pub fn update_conputers(state: &mut WorldState, _c: &mut EngineContext, _dt: f32) {
+    for (_entity, (obj, animated_sprite)) in world()
+        .query::<(&mut Conputer, &mut AnimatedSprite)>()
+        .iter()
+    {
+        let handles = state.reality.interactive.lock();
+        let handle = handles.get(&obj.handle_position).unwrap();
+        if handle.used_by.is_none() {
+            if obj.use_animation_playing {
+                animated_sprite.play("idle");
+                obj.use_animation_playing = false;
+                // println!(
+                //     "Conputer animation switched to {:?}",
+                //     obj.use_animation_playing
+                // )
+            }
+        } else {
+            if !obj.use_animation_playing {
+                obj.use_animation_playing = true;
+                animated_sprite.play("base");
+                // println!(
+                //     "Conputer animation switched to {:?}",
+                //     obj.use_animation_playing
+                // )
+            }
+        }
+    }
+}
+
+pub fn update_init<T: Initializable + Component>(
+    state: &mut WorldState,
+    _c: &mut EngineContext,
+    _dt: f32,
+) {
     for (entity, (obj, transform)) in world().query::<(&mut T, &mut Transform)>().iter() {
         if !obj.is_initialized() {
             obj.initialize(&entity, transform, &mut state.reality)
@@ -93,17 +126,11 @@ pub fn update_init<T: Initializable + Component>(state: &mut WorldState, _c: &mu
 
 pub fn update_initializable_all(state: &mut WorldState, c: &mut EngineContext, dt: f32) {
     update_init::<TrashCan>(state, c, dt);
-    // println!(" ---> TrashCans initialized");
     update_init::<Bone>(state, c, dt);
-    // println!(" ---> Bones initialized");
     update_init::<Conputer>(state, c, dt);
-    // println!(" ---> Conputers initialized");
     update_init::<Bed>(state, c, dt);
-    // println!(" ---> Beds initialized");
     update_init::<dog::Dog>(state, c, dt);
-    // println!(" ---> Dogs initialized");
     update_init::<OfficeWorker>(state, c, dt);
-    // println!(" ---> Workers initialized");
 }
 
 pub fn update_selection(state: &mut WorldState, _c: &mut EngineContext, _dt: f32) {
@@ -183,16 +210,13 @@ pub fn update_dogs(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
             if let Some(order) = state.dog_order {
                 dog.sa.sanity.lock().intend_go_to(order);
             }
-            let intention_result = dog.sa.sanity.lock().think_intention_level_if_not_moving(
-                entity,
-                &state.reality,
-            );
-            dog.sa.think_routine_level(
-                intention_result,
-                &state.reality,
-                entity,
-                dt,
-            );
+            let intention_result = dog
+                .sa
+                .sanity
+                .lock()
+                .think_intention_level_if_not_moving(entity, &state.reality);
+            dog.sa
+                .think_routine_level(intention_result, &state.reality, entity, dt);
         });
     }
 
@@ -370,16 +394,13 @@ pub fn update_sane_objects(state: &mut WorldState, _c: &mut EngineContext, dt: f
             if let Some(order) = state.dog_order {
                 dog.sa.sanity.lock().intend_go_to(order);
             }
-            let intention_result = dog.sa.sanity.lock().think_intention_level_if_not_moving(
-                entity,
-                &state.reality,
-            );
-            dog.sa.think_routine_level(
-                intention_result,
-                &state.reality,
-                entity,
-                dt,
-            );
+            let intention_result = dog
+                .sa
+                .sanity
+                .lock()
+                .think_intention_level_if_not_moving(entity, &state.reality);
+            dog.sa
+                .think_routine_level(intention_result, &state.reality, entity, dt);
         });
     }
 

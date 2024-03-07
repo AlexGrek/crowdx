@@ -14,7 +14,7 @@ pub const PRIORITY_HIGH_NEED: i32 = PRIORITY_HIGH + 1;
 pub const PRIORITY_DANGER: i32 = 100;
 pub const PRIORITY_UNEVITABLE: i32 = 150;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum IntentionCompleted {
     Success,
     Failure,
@@ -32,6 +32,11 @@ pub struct Memory {
     pub events: Vec<MemoryEvent>,
     pub values: PrimitiveHashMap,
     _limit: usize,
+    pub last_intention: Option<IntentionClass>,
+    pub last_intention_failed: Option<IntentionClass>,
+    pub last_intention_success: Option<IntentionClass>,
+    pub last_intention_result: Option<bool>,
+    pub cont_fail_counter: i32,
 }
 
 impl Memory {
@@ -40,6 +45,11 @@ impl Memory {
             events: Vec::new(),
             _limit: 0,
             values: create_primitive_hashmap(),
+            last_intention: None,
+            last_intention_failed: None,
+            last_intention_success: None,
+            last_intention_result: None,
+            cont_fail_counter: 0
         }
     }
 
@@ -203,6 +213,18 @@ impl Brains {
             cycles_counter: 0,
             time_reference: Time::new_zero()
         }
+    }
+
+    pub fn remember_intention_result(&mut self, intention: IntentionClass, success: bool) {
+        self.mem.last_intention = Some(intention);
+        if success {
+            self.mem.last_intention_success = Some(intention);
+            self.mem.cont_fail_counter = 0
+        } else {
+            self.mem.last_intention_failed = Some(intention);
+            self.mem.cont_fail_counter += 1
+        }
+        self.mem.last_intention_result = Some(success);
     }
 
     pub fn init_cycles_counter(&mut self, cycles: isize) {

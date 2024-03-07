@@ -3,7 +3,10 @@ use core::fmt::Debug;
 use std::{borrow::BorrowMut, collections::LinkedList};
 
 use crate::{
-    core::position::{Ps, PsProvider}, gameplay::gametime::{Time, TimeSpan}, state::Reality, worldmap::Cellmap
+    core::position::{Ps, PsProvider},
+    gameplay::gametime::{Time, TimeSpan},
+    state::Reality,
+    worldmap::Cellmap,
 };
 
 use super::{
@@ -107,6 +110,32 @@ impl Sanity {
         }
     }
 
+    pub fn finish_current_intention(&mut self, success: bool) -> bool {
+        if let Some(current) = self.mind.intentions.get_current() {
+            self.mind.remember_intention_result(current.value, success)
+        }
+        self.mind.intentions.finish_current()
+    }
+
+    pub fn finish_current_intention_with(
+        &mut self,
+        result: IntentionCompleted,
+    ) -> IntentionCompleted {
+        if result == IntentionCompleted::Success {
+            if let Some(current) = self.mind.intentions.get_current() {
+                self.mind.remember_intention_result(current.value, true)
+            }
+        }
+        if result == IntentionCompleted::Failure {
+            if let Some(current) = self.mind.intentions.get_current() {
+                self.mind.remember_intention_result(current.value, false)
+            }
+        }
+
+        self.mind.intentions.finish_current();
+        result
+    }
+
     pub fn no_intentions_left(&self) -> bool {
         return self.mind.intentions.intentions_left() == 0;
     }
@@ -125,7 +154,12 @@ impl Sanity {
             .intend(Intention::new(priority, intention))
     }
 
-    pub fn intend_with_priority_timed(&mut self, priority: i32, intention: IntentionClass, time: &Time) {
+    pub fn intend_with_priority_timed(
+        &mut self,
+        priority: i32,
+        intention: IntentionClass,
+        time: &Time,
+    ) {
         self.mind.save_time(time);
         self.intend_with_priority(priority, intention);
     }
@@ -134,8 +168,12 @@ impl Sanity {
         self.intend_with_priority(0, intention)
     }
 
-    pub fn intend_go_to(&mut self, target: Ps) {
+    pub fn intend_go_to_around(&mut self, target: Ps) {
         self.intend(IntentionClass::MoveToDestination(target))
+    }
+
+    pub fn intend_go_to(&mut self, target: Ps) {
+        self.intend(IntentionClass::MoveToPs(target))
     }
 
     fn follow_direction_until_next_cell(&mut self, dt: f32) -> Option<Ps> {
@@ -233,11 +271,7 @@ impl Sanity {
         IntentionCompleted::Failure
     }
 
-    fn think_intentions_level(
-        &mut self,
-        entity: Entity,
-        reality: &Reality,
-    ) -> IntentionCompleted {
+    fn think_intentions_level(&mut self, entity: Entity, reality: &Reality) -> IntentionCompleted {
         // println!("Processing intentions:\n   {:?}\n   {:?}", self.mind.intentions, self.get_current_ps());
         if let Some(current_intention) = self.mind.intentions.get_current() {
             match current_intention.value {
@@ -250,57 +284,148 @@ impl Sanity {
                 IntentionClass::WaitCycles(_) => {
                     // print!(">");
                     if self.mind.count_cycles() {
-                        self.mind.intentions.finish_current();
+                        self.finish_current_intention(true);
                         return IntentionCompleted::Success;
                     }
                 }
                 IntentionClass::PickItemOfType(item_type) => {
-                    self.mind.intentions.finish_current();
-                    return self.try_pick_item(entity, &reality.carriables, Some(item_type));
+                    let result = self.try_pick_item(
+                        entity,
+                        &reality.carriables,
+                        Some(item_type),
+                    );
+                    return self.finish_current_intention_with(result);
                 }
                 IntentionClass::PickAnyItem() => {
-                    self.mind.intentions.finish_current();
-                    return self.try_pick_item(entity, &reality.carriables, None);
+                    let result = self.try_pick_item(
+                        entity,
+                        &reality.carriables,
+                        None,
+                    );
+                    return self.finish_current_intention_with(result);
                 }
                 IntentionClass::ConsumeItemOfType(item_type) => {
-                    self.mind.intentions.finish_current();
-                    return self.try_consume_item(entity, &reality.carriables, Some(item_type));
+                    let result = self.try_consume_item(
+                        entity,
+                        &reality.carriables,
+                        Some(item_type),
+                    );
+                    return self.finish_current_intention_with(result);
                 }
                 IntentionClass::DropCarriedItemOfType(item_type) => {
-                    self.mind.intentions.finish_current();
-                    return self.try_drop_item(entity, &reality.carriables, Some(item_type));
+                    let result = self.try_drop_item(
+                        entity,
+                        &reality.carriables,
+                        Some(item_type),
+                    );
+                    return self.finish_current_intention_with(result);
                 }
                 IntentionClass::ConsumeAnyItem() => {
-                    self.mind.intentions.finish_current();
-                    return self.try_consume_item(entity, &reality.carriables, None);
+                    let result =self.try_consume_item(
+                        entity,
+                        &reality.carriables,
+                        None,
+                    );
+                    return self.finish_current_intention_with(result);
                 }
                 IntentionClass::DropAnyCarriedItem() => {
-                    self.mind.intentions.finish_current();
-                    return self.try_drop_item(entity, &reality.carriables, None);
+                    let result = self.try_drop_item(
+                        entity,
+                        &reality.carriables,
+                        None,
+                    );
+                    return self.finish_current_intention_with(result);
                 }
                 IntentionClass::ConsumeCarriedItemOfType(item_type) => {
-                    self.mind.intentions.finish_current();
-                    return self.try_consume_carried_item(entity, &reality.carriables, Some(item_type));
+                    let result = self.try_consume_carried_item(
+                        entity,
+                        &reality.carriables,
+                        Some(item_type),
+                    );
+                    return self.finish_current_intention_with(result);
                 }
                 IntentionClass::ConsumeAnyCarriedItem() => {
-                    self.mind.intentions.finish_current();
-                    return self.try_consume_carried_item(entity, &reality.carriables, None);
+                    let result = self.try_consume_carried_item(
+                        entity,
+                        &reality.carriables,
+                        None,
+                    );
+                    return self.finish_current_intention_with(result);
                 }
                 IntentionClass::UseInteractiveOnce() => todo!(),
                 IntentionClass::UseInteractiveCycles(_) => todo!(),
-                IntentionClass::UseInteractiveMinutes(minutes) => return self.use_interactive_minutes(minutes, reality),
+                IntentionClass::UseInteractiveMinutes(minutes) => {
+                    return self.use_interactive_minutes(entity, minutes, reality)
+                }
             }
         }
         IntentionCompleted::Undefined
     }
 
-    fn use_interactive_minutes(&mut self, minutes: isize, reality: &Reality) -> IntentionCompleted {
+    fn try_use_interactive(
+        &mut self,
+        entity: Entity,
+        reality: &Reality,
+    ) -> Option<IntentionCompleted> {
+        let position = self.get_current_ps();
+        let mut items = reality.interactive.lock();
+        for (_, item) in items.iter_mut() {
+            if item.get_interactive_ps() == position {
+                if let Some(user) = item.used_by {
+                    if user != entity {
+                        println!(
+                            "WARN: IItem {:?} already in use, cannot use by {:?}",
+                            item, entity
+                        );
+                        return Some(IntentionCompleted::Failure);
+                    }
+                    return None;
+                }
+                item.use_by(entity);
+                // println!("IItem {:?} is now used by {:?}", item, entity);
+                return None;
+            }
+        }
+        println!("ERROR: Not found any interactive object in position {:?}", position);
+        return Some(IntentionCompleted::Failure);
+    }
+
+    fn try_release_interactive(&mut self, entity: Entity, reality: &Reality) -> IntentionCompleted {
+        let position = self.get_current_ps();
+        let mut items = reality.interactive.lock();
+        for (_, item) in items.iter_mut() {
+            if item.get_interactive_ps() == position {
+                if let Some(user) = item.used_by {
+                    if user != entity {
+                        println!(
+                            "WARN: IItem {:?} already in use BY SOMEONE ELSE, cannot release by {:?}",
+                            item, entity
+                        );
+                        return IntentionCompleted::Failure;
+                    } else {
+                        item.release();
+                        // println!("IItem {:?} is released by {:?}", item, entity);
+                        return IntentionCompleted::Success;
+                    }
+                }
+            }
+        }
+        println!("ERROR: Not found any interactive object to release in position {:?}", position);
+        IntentionCompleted::Failure
+    }
+
+    fn use_interactive_minutes(
+        &mut self,
+        entity: Entity,
+        minutes: isize,
+        reality: &Reality,
+    ) -> IntentionCompleted {
         if self.mind.time_reference.elapsed(&reality.time) >= TimeSpan::new(minutes) {
-            self.mind.intentions.finish_current();
-            println!("Use interactive finished");
-            IntentionCompleted::Success
+            let result = self.try_release_interactive(entity, reality);
+            self.finish_current_intention_with(result)
         } else {
-            IntentionCompleted::None
+            self.try_use_interactive(entity, reality)
+                .unwrap_or(IntentionCompleted::None)
         }
     }
 
@@ -327,7 +452,7 @@ impl Sanity {
                 // print!("X");
                 // destination is unreachable
                 // println!("Cannot move to destination");
-                self.mind.intentions.finish_current();
+                self.finish_current_intention(false);
                 self.mv.stop_moving();
                 return IntentionCompleted::Failure;
             }
@@ -341,7 +466,7 @@ impl Sanity {
         let reached = dest.manhattan_distance(&self.get_current_ps()) <= required_distance
             || self.mv.is_reached_cell_flag_set();
         if reached {
-            self.mind.intentions.finish_current();
+            self.finish_current_intention(true);
             // print!("Y");
             return IntentionCompleted::Success;
         }
@@ -408,7 +533,7 @@ impl Sanity {
         if let Some(following_step) = self.mv.peek_close_step_or_final_step(detour_dist) {
             let (position_target, position_index) = following_step;
             if position_target == self.get_current_ps() {
-                println!("WARN: trying to find path to same position {:?} in detour [dist = {}, asked dist = {}]", position_target, position_index, detour_dist);
+                println!("WARN: trying to find path to same position {:?} in detour [dist = {}, asked dist = {}]...\n{:?}", position_target, position_index, detour_dist, self.mv.current_move_path);
                 return false;
             }
             return match try_find_route_from_to(

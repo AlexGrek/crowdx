@@ -24,14 +24,14 @@ impl Routine for GoToRoutine {
             IntentionCompleted::Success
             | IntentionCompleted::Undefined => {
                 if sanity.no_intentions_left() {
-                    println!("{:?} Intends go to: {:?}", entity, self.target);
+                    // println!("{:?} Intends go to: {:?}", entity, self.target);
                     sanity.intend_go_to(self.target)
                 }
             }
             IntentionCompleted::None => (),
             IntentionCompleted::Failure => {
                 let mut mov = RandomStepRoutine;
-                println!("Random step: {:?} {:?}", entity, result);
+                // println!("Random step: {:?} {:?}", entity, result);
                 mov.get_processing_fn(sanity, result, map, entity, dt);
             },
         }

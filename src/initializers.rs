@@ -3,25 +3,25 @@ use crate::{
         carriable::carriableitem::CarriableItemHandle,
         dog,
         item_types::{BONE, TRASHCAN},
-    },
-    gameplay::ent::{
-        officeworker::OfficeWorker, MapEntityObject,
-    },
-    state::WorldState,
-    worldmap::{Cellmap, TileReference},
-    Bone, TrashCan, RES_I32,
+    }, core::animation::AdditionalAnimationDescr, gameplay::ent::{officeworker::OfficeWorker, MapEntityObject}, state::WorldState, worldmap::{Cellmap, TileReference}, Bone, TrashCan, RES_I32
 };
 use comfy::{num_traits::ToPrimitive, *};
 
-pub fn spawn_object_sprite<T, F>(x:i32, y: i32, tile: &TileReference, mut size: Vec2, name: String, spawner: F)
-where
+pub fn spawn_object_sprite<T, F>(
+    x: i32,
+    y: i32,
+    tile: &TileReference,
+    mut size: Vec2,
+    name: String,
+    spawner: F,
+    animations: Vec<AdditionalAnimationDescr>,
+) where
     F: Fn() -> T,
     T: MapEntityObject + 'static,
 {
     match tile.animated {
         Some(anim) => {
             size.x = size.x / anim.steps as f32;
-            // println!("Animated tile: {:?} {:?}\n{:?}", anim, tile, size);
             let mut builder = AnimatedSpriteBuilder::new().add_animation(
                 "base",
                 anim.delay,
@@ -34,10 +34,29 @@ where
                     frames: anim.steps.clone(),
                 },
             );
+            for other_anim in animations.iter() {
+                builder = builder.add_animation(
+                    &other_anim.animation_name,
+                    other_anim.delay,
+                    true,
+                    AnimationSource::Atlas {
+                        name: other_anim.atlas_name.to_owned().into(),
+                        offset: ivec2(0, 0),
+                        step: ivec2(RES_I32, 0),
+                        size: isplat(RES_I32),
+                        frames: other_anim.steps,
+                    },
+                );
+            }
             builder.z_index = 1;
             let mut animated = builder.build();
             animated.play("base");
-            println!("Animated sprite (x: {}, y: {}) size: {:?}", x, y, vec2(x as f32, y as f32) + ((size - vec2(1.0, 1.0)) / vec2(2.0, 2.0)));
+            println!(
+                "Animated sprite (x: {}, y: {}) size: {:?}",
+                x,
+                y,
+                vec2(x as f32, y as f32) + ((size - vec2(1.0, 1.0)) / vec2(2.0, 2.0))
+            );
             commands().spawn((
                 animated,
                 Transform::position(

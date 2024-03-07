@@ -1,7 +1,7 @@
 use comfy::Entity;
 
 use crate::{
-    behavior::{mental::IntentionCompleted, routing::SUCCESSORS, sanity::*}, core::position::{PsProvider, PsSigned}, state::Reality
+    behavior::{mental::{IntentionCompleted, PRIORITY_BASE}, routing::SUCCESSORS, sanity::*}, core::position::{PsProvider, PsSigned}, state::Reality
 };
 
 
@@ -56,7 +56,9 @@ impl Routine for RandomStepRoutine {
                     let succ: PsSigned = comfy::ChooseRandom::choose(&SUCCESSORS.to_vec()).unwrap().to_owned().into();
                     let cell = sanity.get_current_ps() + succ;
                     if map.cellmap.xy_within_bounds(&cell) && map.cellmap.get_pos(&cell).is_passable(true) {
-                        sanity.intend_go_to(cell.into())
+                        sanity.intend_go_to(cell.into());
+                    } else {
+                        sanity.mind.intend_cycles_count(10, PRIORITY_BASE);
                     }
                     
                 }

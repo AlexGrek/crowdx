@@ -1,6 +1,6 @@
 use comfy::{Entity, Transform};
 
-use crate::{behavior::interactive::InteractiveObjectHandle, state::Reality};
+use crate::{behavior::interactive::InteractiveObjectHandle, core::position::Ps, state::Reality};
 
 use super::MapEntityObject;
 
@@ -21,9 +21,10 @@ impl Bed {
 impl crate::core::Initializable for Bed {
     fn initialize(&mut self, entity: &Entity, transform: &mut Transform, reality: &mut Reality) {
         self.initialized = true;
-        println!("Bed {:?} initialized", entity);
+        let position: Ps = transform.position.into();
+        // println!("Bed {:?} initialized", entity);
         let mut lock = reality.interactive.lock();
-        lock.insert(entity.to_owned(), InteractiveObjectHandle::new(crate::behavior::item_types::BED, entity.to_owned(), transform.position.into(), None));
+        lock.insert(position, InteractiveObjectHandle::new(crate::behavior::item_types::BED, entity.to_owned(), transform.position.into(), None));
     }
     
     fn is_initialized(&self) -> bool {
