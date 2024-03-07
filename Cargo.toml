@@ -1,0 +1,23 @@
+[package]
+name = "crowdx"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+blondie = "0.4.1"
+comfy = "0.3.1"
+lazy_static = "1.4.0"
+linked-list = "0.0.3"
+pad = "0.1.6"
+pathfinding = "4.9.1"
+tiled = "0.11.2"
+
+[profile.dev]
+opt-level = 1
+[profile.dev.package."*"]
+opt-level = 1
+
+[profile.release]
+debug = true

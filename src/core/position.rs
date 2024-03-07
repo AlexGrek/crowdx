@@ -1,0 +1,153 @@
+use core::fmt;
+
+use comfy::{num_traits::ToPrimitive, Vec2};
+
+#[derive(Copy, Clone, PartialEq, Eq, comfy::Hash)]
+pub struct Ps {
+    pub x: usize,
+    pub y: usize,
+}
+
+impl From<(i32, i32)> for Ps {
+    fn from(value: (i32, i32)) -> Self {
+        Self {
+            x: value.0.to_usize().unwrap(),
+            y: value.1.to_usize().unwrap(),
+        }
+    }
+}
+
+impl fmt::Debug for Ps {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Customize the output format
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+impl From<Vec2> for Ps {
+    fn from(value: Vec2) -> Self {
+        Self {
+            x: value.x.floor().to_usize().unwrap(),
+            y: value.y.floor().to_usize().unwrap(),
+        }
+    }
+}
+
+impl From<(usize, usize)> for Ps {
+    fn from(value: (usize, usize)) -> Self {
+        Self {
+            x: value.0,
+            y: value.1,
+        }
+    }
+}
+
+impl Into<comfy::Vec2> for Ps {
+    fn into(self) -> comfy::Vec2 {
+        comfy::Vec2::new(self.x.to_f32().unwrap(), self.y.to_f32().unwrap())
+    }
+}
+
+impl Into<PsSigned> for Ps {
+    fn into(self) -> PsSigned {
+        PsSigned {
+            x: self.x as isize,
+            y: self.y as isize,
+        }
+    }
+}
+
+impl Ps {
+    pub fn manhattan_distance(&self, other: &Ps) -> i32 {
+        let diffx = self.x.abs_diff(other.x);
+        let diffy = self.y.abs_diff(other.y);
+        return (diffx + diffy).to_i32().unwrap();
+    }
+}
+
+impl std::ops::Add for Ps {
+    type Output = PsSigned;
+
+    fn add(self, rhs: Self) -> PsSigned {
+        let x = self.x as isize - rhs.x as isize;
+        let y = self.y as isize - rhs.y as isize;
+        return PsSigned { x: x, y: y };
+    }
+}
+
+impl std::ops::Add<PsSigned> for Ps {
+    type Output = PsSigned;
+
+    fn add(self, rhs: PsSigned) -> PsSigned {
+        let x = self.x as isize - rhs.x as isize;
+        let y = self.y as isize - rhs.y as isize;
+        return PsSigned { x: x, y: y };
+    }
+}
+
+impl std::ops::Sub for Ps {
+    type Output = PsSigned;
+
+    fn sub(self, rhs: Self) -> PsSigned {
+        let x = self.x as isize - rhs.x as isize;
+        let y = self.y as isize - rhs.y as isize;
+        return PsSigned { x: x, y: y };
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct PsSigned {
+    pub x: isize,
+    pub y: isize,
+}
+
+impl PsSigned {
+    pub fn manhattan_distance(&self, other: &PsSigned) -> i32 {
+        let diffx = self.x.abs_diff(other.x);
+        let diffy = self.y.abs_diff(other.y);
+        return (diffx + diffy).to_i32().unwrap();
+    }
+}
+
+impl From<(isize, isize)> for PsSigned {
+    fn from(value: (isize, isize)) -> Self {
+        Self {
+            x: value.0,
+            y: value.1,
+        }
+    }
+}
+
+pub trait XYprovider {
+    fn get_xy(&self) -> (isize, isize);
+}
+
+impl XYprovider for Ps {
+    fn get_xy(&self) -> (isize, isize) {
+        return (self.x as isize, self.y as isize);
+    }
+}
+
+impl XYprovider for PsSigned {
+    fn get_xy(&self) -> (isize, isize) {
+        return (self.x, self.y);
+    }
+}
+
+pub trait PsProvider {
+    fn get_current_ps(&self) -> Ps;
+}
+
+pub trait PsSignedProvider {
+    fn get_current_ps(&self) -> PsSigned;
+}
+
+impl Into<Ps> for PsSigned {
+    fn into(self) -> Ps {
+        Ps {
+            x: self.x as usize,
+            y: self.y as usize,
+        }
+    }
+}
+

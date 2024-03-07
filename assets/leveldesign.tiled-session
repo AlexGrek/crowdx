@@ -1,0 +1,43 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "level0.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "fileStates": {
+        "": {
+            "scaleInEditor": 1
+        },
+        "level0.tmx": {
+            "scale": 2,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 3651.25,
+                "y": 534
+            }
+        },
+        "level0.tmx#base": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "last.imagePath": "C:/Users/AlexG/Documents/dev/crowdx/crowdx/assets",
+    "map.height": 30,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 48,
+    "map.tileWidth": 48,
+    "openFiles": [
+        "level0.tmx"
+    ],
+    "project": "leveldesign.tiled-project",
+    "property.type": "int",
+    "recentFiles": [
+        "level0.tmx"
+    ],
+    "tileset.embedInMap": true,
+    "tileset.type": 1
+}
