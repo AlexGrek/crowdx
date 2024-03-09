@@ -161,6 +161,7 @@ pub fn spawn_workers(count: isize, cellmap: &Cellmap, x_limit: usize, y_limit: u
 pub fn spawn_dog(name: String, x: usize, y: usize) {
     println!("++ {:?} (x: {}, y: {})", name, x, y);
     crate::lazy_load_texture("dog48_idle.png".into());
+    crate::lazy_load_texture("dog48_idle_reversed.png".into());
     commands().spawn((
         AnimatedSpriteBuilder::new()
             .z_index(1)
@@ -170,6 +171,18 @@ pub fn spawn_dog(name: String, x: usize, y: usize) {
                 true,
                 AnimationSource::Atlas {
                     name: "dog48_idle.png".into(),
+                    offset: ivec2(0, 0),
+                    step: ivec2(RES_I32, 0),
+                    size: isplat(RES_I32),
+                    frames: 4,
+                },
+            )
+            .add_animation(
+                "idle_left",
+                0.1,
+                true,
+                AnimationSource::Atlas {
+                    name: "dog48_idle_reversed.png".into(),
                     offset: ivec2(0, 0),
                     step: ivec2(RES_I32, 0),
                     size: isplat(RES_I32),

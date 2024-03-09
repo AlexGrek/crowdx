@@ -4,7 +4,7 @@ use crate::core::position::{Ps, PsProvider, PsSigned};
 use comfy::RandomRange;
 use comfy::{num_traits::ToPrimitive, Vec2};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Direction {
     Up,
     Down,

@@ -71,7 +71,7 @@ pub fn update_camera(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
 }
 
 pub fn update_bones(state: &mut WorldState, _c: &mut EngineContext, _dt: f32) {
-    for (entity, (obj, transform)) in world().query::<(&mut Bone, &mut Transform)>().iter() {
+    for (entity, (_obj, transform)) in world().query::<(&mut Bone, &mut Transform)>().iter() {
         let mut handles = state.reality.carriables.lock();
         let handle = handles.get(&entity).unwrap();
         transform.position = handle.get_exact_pos();
@@ -197,12 +197,12 @@ pub fn update_selection(state: &mut WorldState, _c: &mut EngineContext, _dt: f32
 
 pub fn update_dogs(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
     let wrld = world();
-    let mut queried = wrld.query::<(&mut dog::Dog, &mut Transform)>();
+    let mut queried = wrld.query::<(&mut dog::Dog, &mut Transform, &mut AnimatedSprite)>();
     let items = queried.iter().collect::<Vec<_>>();
 
     if !state.paused {
         items.into_par_iter().for_each(|data| {
-            let (entity, (dog, _)) = data;
+            let (entity, (dog, _, _anim)) = data;
             if !dog.initialized {
                 return;
             }
@@ -224,7 +224,7 @@ pub fn update_dogs(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
 
     comfy::ChooseRandom::shuffle(&mut items_again);
 
-    for (_entity, (dog, transform)) in items_again.into_iter() {
+    for (_entity, (dog, transform, anim)) in items_again.into_iter() {
         transform.position = dog.get_exact_pos();
 
         if state.paused {
@@ -327,6 +327,11 @@ pub fn update_dogs(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
 
         if !state.paused {
             sanity.think_movement_level_if_not_moving(&mut state.reality.cellmap);
+            if sanity.mv.movement.loc.direction == Some(Direction::Left) {
+                anim.play("idle_left")
+            } else if sanity.mv.movement.loc.direction == Some(Direction::Right) {
+                anim.play("idle")
+            }
         }
     }
     // print!("  ");
