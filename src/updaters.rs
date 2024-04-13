@@ -6,12 +6,15 @@ use crate::core::Initializable;
 use crate::gameplay::ent::bed::Bed;
 use crate::gameplay::ent::conputer::Conputer;
 use crate::gameplay::ent::officeworker::OfficeWorker;
+use crate::gameplay::humanclothes::{BodyClothesLookPart, EyesLookPart, HairLookPart};
 use crate::initializers::create_bones;
 use crate::state::WorldState;
-use comfy::hecs::Component;
+use crate::ui::statusbar::Statusbar;
+use comfy::hecs::{Component, With};
 use comfy::{
-    commands, draw_rect_outline, is_key_pressed, splat, vec2, AnimatedSprite, IntoParallelIterator,
-    Lazy, Mutex, ParallelIterator, Sprite, TextParams, BLUE, GREEN, ORANGE_RED, WHITE,
+    commands, draw_rect, draw_rect_outline, is_key_pressed, rand, splat, vec2, AnimatedSprite,
+    Entity, IntoParallelIterator, Lazy, Mutex, ParallelIterator, Sprite, TextParams, BLUE, GREEN,
+    ORANGE_RED, SEA_GREEN, WHITE,
 };
 use comfy::{
     is_key_down, is_mouse_button_pressed, main_camera_mut, num_traits::ToPrimitive, world,
@@ -338,6 +341,76 @@ pub fn update_dogs(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
     state.dog_order = None;
 }
 
+pub fn update_statusbars() {
+    for (_entity, (bars, transform)) in world().query::<(&mut Statusbar, &mut Transform)>().iter() {
+        let mut i: f32 = 0.0;
+        let pos = transform.position;
+        for (_, bar) in bars.bars.iter() {
+            draw_rect(
+                vec2(pos.x.to_f32().unwrap(), pos.y.to_f32().unwrap() + 0.4 + i),
+                vec2(1.0, 0.2),
+                SEA_GREEN.alpha(0.4),
+                99,
+            );
+            draw_rect(
+                vec2(
+                    pos.x.to_f32().unwrap() - 0.5 + bar.normalized() / 2.0,
+                    pos.y.to_f32().unwrap() + 0.4 + i,
+                ),
+                vec2(bar.normalized(), 0.2),
+                GREEN.alpha(0.7),
+                100,
+            );
+            i += 0.2;
+        }
+    }
+}
+
+pub fn update_human_looks() {
+    let world = world();
+    for (_entity, (part, transform)) in world.query::<(&mut EyesLookPart, &mut Transform)>().iter()
+    {
+        let mut query = world.query::<(&OfficeWorker, &Transform)>();
+        let items = query.iter().filter(|p| p.0 == part.ent);
+        let matched = items.last();
+        if matched.is_none() {
+            commands().despawn(_entity);
+            println!("Despawned human part");
+        } else {
+            let (_human_entity, (_, parent_transform)) = matched.unwrap();
+            transform.position = parent_transform.position;
+        }
+    }
+    for (_entity, (part, transform)) in world
+        .query::<(&mut BodyClothesLookPart, &mut Transform)>()
+        .iter()
+    {
+        let mut query = world.query::<(&OfficeWorker, &Transform)>();
+        let items = query.iter().filter(|p| p.0 == part.ent);
+        let matched = items.last();
+        if matched.is_none() {
+            commands().despawn(_entity);
+            println!("Despawned human part");
+        } else {
+            let (_human_entity, (_, parent_transform)) = matched.unwrap();
+            transform.position = parent_transform.position;
+        }
+    }
+    for (_entity, (part, transform)) in world.query::<(&mut HairLookPart, &mut Transform)>().iter()
+    {
+        let mut query = world.query::<(&OfficeWorker, &Transform)>();
+        let items = query.iter().filter(|p| p.0 == part.ent);
+        let matched = items.last();
+        if matched.is_none() {
+            commands().despawn(_entity);
+            println!("Despawned human part");
+        } else {
+            let (_human_entity, (_, parent_transform)) = matched.unwrap();
+            transform.position = parent_transform.position;
+        }
+    }
+}
+
 pub fn update_heatmap(state: &mut WorldState, _c: &mut EngineContext, _dt: f32) {
     let mut heatmap = GLOBAL_HEATMAP.lock();
     for (index, item) in state.reality.cellmap.map.iter().enumerate() {
@@ -386,26 +459,40 @@ pub fn update_time(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
 
 pub fn update_sane_objects(state: &mut WorldState, _c: &mut EngineContext, dt: f32) {
     let wrld = world();
-    let mut queried = wrld.query::<(&mut OfficeWorker, &mut Transform)>();
+    let mut queried = wrld.query::<(&mut OfficeWorker, &mut Transform, &mut Statusbar)>();
     let items = queried.iter().collect::<Vec<_>>();
 
     if !state.paused {
         items.into_par_iter().for_each(|data| {
-            let (entity, (dog, _)) = data;
-            if !dog.initialized {
+            let (entity, (actor, _, statusbar)) = data;
+            if !actor.initialized {
                 return;
             }
-            dog.sa.sanity.lock().move_direction_if_can(dt);
+            actor.sa.sanity.lock().move_direction_if_can(dt);
             if let Some(order) = state.dog_order {
-                dog.sa.sanity.lock().intend_go_to(order);
+                actor.sa.sanity.lock().intend_go_to(order);
             }
-            let intention_result = dog
+            let intention_result = actor
                 .sa
                 .sanity
                 .lock()
                 .think_intention_level_if_not_moving(entity, &state.reality);
-            dog.sa
+            actor
+                .sa
                 .think_routine_level(intention_result, &state.reality, entity, dt);
+
+            statusbar.show(
+                "steps".to_owned(),
+                actor
+                    .sa
+                    .sanity
+                    .lock()
+                    .mv
+                    .current_move_path
+                    .calculated_steps
+                    .len() as f32,
+                100.0,
+            );
         });
     }
 
@@ -413,7 +500,7 @@ pub fn update_sane_objects(state: &mut WorldState, _c: &mut EngineContext, dt: f
 
     comfy::ChooseRandom::shuffle(&mut items_again);
 
-    for (_entity, (dog, transform)) in items_again.into_iter() {
+    for (_entity, (dog, transform, _)) in items_again.into_iter() {
         transform.position = dog.sa.get_exact_pos();
 
         if state.paused {
@@ -436,7 +523,7 @@ pub fn update_sane_objects(state: &mut WorldState, _c: &mut EngineContext, dt: f
                         splat(0.9),
                         0.6,
                         comfy::RED,
-                        1,
+                        4,
                     );
                 }
 
@@ -454,7 +541,7 @@ pub fn update_sane_objects(state: &mut WorldState, _c: &mut EngineContext, dt: f
                         splat(0.7),
                         0.1,
                         ORANGE_RED,
-                        1,
+                        4,
                     );
                 }
             }

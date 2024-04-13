@@ -9,7 +9,7 @@ use crate::{
         position::{Ps, PsProvider},
         Initializable,
     },
-    gameplay::gametime::Time,
+    gameplay::{gametime::Time, humanclothes::Look},
     state::Reality,
 };
 use comfy::ChooseRandom;
@@ -28,6 +28,7 @@ pub struct OfficeWorker {
     pub sa: SelfAware<OfficeWorkerRoutine>,
     pub initialized: bool,
     pub name: String,
+    pub look: Look,
 }
 
 fn is_time_to_work(time: &Time) -> bool {
@@ -41,7 +42,7 @@ fn is_time_to_sleep(time: &Time) -> bool {
 impl Initializable for OfficeWorker {
     fn initialize(
         &mut self,
-        _entity: &Entity,
+        entity: &Entity,
         _transform: &mut comfy::Transform,
         reality: &mut Reality,
     ) {
@@ -53,7 +54,7 @@ impl Initializable for OfficeWorker {
             .map(|x| x.0.clone())
             .collect();
         if possible.len() < 1 {
-            println!("Not enough conputers for Office Worker {:?}", _entity);
+            println!("Not enough conputers for Office Worker {:?}", entity);
         }
         let handle = locked.get_mut(possible.choose().unwrap()).unwrap();
         self.assign_office(handle.get_interactive_ps());
@@ -66,11 +67,14 @@ impl Initializable for OfficeWorker {
             .map(|x| x.0.clone())
             .collect();
         if possible_bed.len() < 1 {
-            println!("Not enough beds for Office Worker {:?}", _entity);
+            println!("Not enough beds for Office Worker {:?}", entity);
         }
         let handle_bed = locked.get_mut(possible_bed.choose().unwrap()).unwrap();
         self.assign_bed(handle_bed.get_interactive_ps());
         handle_bed.assign();
+
+        // init body parts
+        self.look.spawn_for_entity(entity.clone());
 
         self.initialized = true;
 
@@ -183,6 +187,7 @@ impl OfficeWorker {
                     assigned_office: None,
                 }),
             ),
+            look: Look::new(),
         }
     }
 

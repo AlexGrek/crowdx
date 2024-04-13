@@ -3,7 +3,7 @@ use crate::{
         carriable::carriableitem::CarriableItemHandle,
         dog,
         item_types::{BONE, TRASHCAN},
-    }, core::animation::AdditionalAnimationDescr, gameplay::ent::{officeworker::OfficeWorker, MapEntityObject}, state::WorldState, worldmap::{Cellmap, TileReference}, Bone, TrashCan, RES_I32
+    }, core::animation::AdditionalAnimationDescr, gameplay::ent::{officeworker::OfficeWorker, MapEntityObject}, state::WorldState, ui::statusbar::{self, Statusbar}, worldmap::{Cellmap, TileReference}, Bone, TrashCan, RES_I32
 };
 use comfy::{num_traits::ToPrimitive, *};
 
@@ -202,10 +202,16 @@ pub fn spawn_dog(name: String, x: usize, y: usize) {
 
 pub fn spawn_worker(name: String, x: usize, y: usize) {
     println!("WORKER {:?} (x: {}, y: {})", name, x, y);
-    crate::lazy_load_texture("wat.png".into());
+
+    crate::lazy_load_texture("human/human_base.png".into());
+    let sprite = Sprite::new("human/human_base.png", vec2(1.0, 1.0), 11, WHITE).with_rect(0, 0, RES_I32, RES_I32);
+    let worker = OfficeWorker::new(name.to_string(), f32::gen_range(3.0, 10.0), (x, y).into());
+    worker.look.lazy_load_sprites();
+    let statusbar = Statusbar::new();
     commands().spawn((
-        Sprite::new("wat.png", vec2(1.0, 1.0), 1, WHITE).with_rect(0, 0, RES_I32, RES_I32),
+        sprite,
         Transform::position(vec2(x.to_f32().unwrap(), y.to_f32().unwrap())),
-        OfficeWorker::new(name.to_string(), f32::gen_range(3.0, 10.0), (x, y).into()),
+        worker,
+        statusbar,
     ));
 }

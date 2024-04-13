@@ -13,6 +13,8 @@ linked-list = "0.0.3"
 pad = "0.1.6"
 pathfinding = "4.9.1"
 tiled = "0.11.2"
+indexmap = "1.7.0"
+
 
 [profile.dev]
 opt-level = 1

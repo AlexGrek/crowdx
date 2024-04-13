@@ -6,6 +6,8 @@ mod tiledreader;
 mod updaters;
 pub mod utils;
 mod worldmap;
+mod persistence;
+mod ui;
 
 pub mod core;
 
@@ -145,14 +147,14 @@ impl GameLoop for WorldState {
                             let pc = Conputer::new(ivec2(x_work, y_work));
                             println!("Cnputer created: {:?}", pc);
                             lazy_load_texture("conputer_idle.png".into());
-                            spawn_object_sprite(x, y, tile, size, name, || pc.clone(), vec!(
+                            spawn_object_sprite(x, y, tile, size, name, || pc, vec!(
                                 AdditionalAnimationDescr::new("idle".into(), "conputer_idle.png".into(), 10, 1.0)
                             ))
                         }
                         "bed" => {
-                            let pc = gameplay::ent::bed::Bed::new();
-                            println!("Bed created: {:?}", pc);
-                            spawn_object_sprite(x, y, tile, size, name, || pc.clone(), Vec::new());
+                            let bed = gameplay::ent::bed::Bed::new();
+                            println!("Bed created: {:?}", bed);
+                            spawn_object_sprite(x, y, tile, size, name, || bed, Vec::new());
                         }
                         _x => spawn_object_sprite(x, y, tile, size, name, || Grass {}, Vec::new()),
                     }
@@ -286,6 +288,8 @@ impl GameLoop for WorldState {
         updaters::update_selection(self, c, dt);
         // updaters::update_heatmap(self, c, dt);
         updaters::update_time(self, c, dt);
+        updaters::update_human_looks();
+        updaters::update_statusbars();
     }
 }
 

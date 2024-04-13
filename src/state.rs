@@ -4,10 +4,7 @@ use crate::{
     behavior::{
         carriable::carriableitem::CarriableItems, interactive::InteractiveObjects,
         messaging::MessagingHosts,
-    },
-    core::position::Ps,
-    gameplay::gametime::Time,
-    worldmap::Cellmap,
+    }, core::position::Ps, gameplay::gametime::Time, persistence::Persistence, worldmap::Cellmap
 };
 
 pub struct Reality {
@@ -15,6 +12,7 @@ pub struct Reality {
     pub carriables: Arc<CarriableItems>,
     pub messaging: Arc<MessagingHosts>,
     pub interactive: Arc<InteractiveObjects>,
+    pub persistence: Persistence,
     pub time: Time,
 }
 
@@ -25,6 +23,7 @@ impl Reality {
             carriables: Arc::new(Mutex::new(HashMap::new())),
             messaging: Arc::new(Mutex::new(HashMap::new())),
             interactive: Arc::new(Mutex::new(HashMap::new())),
+            persistence: Persistence::new(),
             time: Time::new(16*60)
         }
     }
