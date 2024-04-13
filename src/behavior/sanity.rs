@@ -3,15 +3,11 @@ use core::fmt::Debug;
 use std::{borrow::BorrowMut, collections::LinkedList};
 
 use crate::{
-    core::position::{Ps, PsProvider}, gameplay::gametime::{Time, TimeSpan}, persistence::{self, Persistence}, state::Reality, worldmap::Cellmap
+    core::position::{Ps, PsProvider}, gameplay::gametime::{Time, TimeSpan}, state::Reality, worldmap::Cellmap
 };
 
 use super::{
-    carriable::carriableitem::CarriableItems,
-    carrier::Carrier,
-    creatures::{validate_path, Direction, PsOffsetProvider, SelfRoutingData},
-    mental::{Brains, Intention, IntentionClass, IntentionCompleted},
-    routing::{try_find_route_from_to, PathfindRouter},
+    carriable::carriableitem::CarriableItems, carrier::Carrier, creatures::{validate_path, Direction, PsOffsetProvider, SelfRoutingData}, mental::{Brains, Intention, IntentionClass, IntentionCompleted}, messaging::communication::Communicator, routing::{try_find_route_from_to, PathfindRouter}
 };
 
 const DETOURS: [usize; 4] = [6, 8, 16, 32];
@@ -41,11 +37,12 @@ impl<T: Routine> SelfAware<T> {
         result: IntentionCompleted,
         map: &Reality,
         entity: Entity,
+        communication: &Communicator,
         dt: f32,
     ) {
         // println!("Thinking routine level after {:?}", result);
         self.routine
-            .get_processing_fn(self.sanity.lock().borrow_mut(), result, map, entity, dt)
+            .get_processing_fn(self.sanity.lock().borrow_mut(), result, map, entity, communication, dt)
     }
 }
 
@@ -74,6 +71,7 @@ pub trait Routine: Debug + Send + Sync {
         result: IntentionCompleted,
         map: &Reality,
         entity: Entity,
+        communication: &Communicator,
         dt: f32,
     );
 }
@@ -88,6 +86,7 @@ impl Routine for NoRoutine {
         _result: IntentionCompleted,
         _map: &Reality,
         _entity: Entity,
+        _communication: &Communicator,
         _dt: f32,
     ) {
         return ();

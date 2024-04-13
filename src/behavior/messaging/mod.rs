@@ -1,3 +1,5 @@
+pub mod communication;
+
 use comfy::{Entity, HashMap, Mutex};
 
 #[derive(Debug)]

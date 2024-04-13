@@ -1,10 +1,14 @@
-use comfy::{Arc, HashMap, Mutex};
+use comfy::{Arc, Entity, HashMap, HashSet, Mutex};
 
 use crate::{
     behavior::{
         carriable::carriableitem::CarriableItems, interactive::InteractiveObjects,
         messaging::MessagingHosts,
-    }, core::position::Ps, gameplay::gametime::Time, persistence::Persistence, worldmap::Cellmap
+    },
+    core::{anycellmap::AnyCellmap, position::Ps},
+    gameplay::gametime::Time,
+    persistence::Persistence,
+    worldmap::Cellmap,
 };
 
 pub struct Reality {
@@ -12,19 +16,22 @@ pub struct Reality {
     pub carriables: Arc<CarriableItems>,
     pub messaging: Arc<MessagingHosts>,
     pub interactive: Arc<InteractiveObjects>,
+    pub comm_map: Arc<Mutex<AnyCellmap<HashSet<Entity>>>>,
     pub persistence: Persistence,
     pub time: Time,
 }
 
 impl Reality {
     pub fn new(cellmap: Cellmap) -> Self {
+        let wh = cellmap.wh_i32();
         Self {
             cellmap,
             carriables: Arc::new(Mutex::new(HashMap::new())),
             messaging: Arc::new(Mutex::new(HashMap::new())),
             interactive: Arc::new(Mutex::new(HashMap::new())),
             persistence: Persistence::new(),
-            time: Time::new(16*60)
+            time: Time::new(16 * 60),
+            comm_map: Arc::new(Mutex::new(AnyCellmap::new(&HashSet::new(), wh.0, wh.1))),
         }
     }
 }

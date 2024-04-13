@@ -1,7 +1,7 @@
 use comfy::Entity;
 
 use crate::{
-    behavior::{mental::{IntentionCompleted, PRIORITY_BASE}, routing::SUCCESSORS, sanity::*}, core::position::{PsProvider, PsSigned}, state::Reality
+    behavior::{mental::{IntentionCompleted, PRIORITY_BASE}, messaging::communication::Communicator, routing::SUCCESSORS, sanity::*}, core::position::{PsProvider, PsSigned}, state::Reality
 };
 
 
@@ -16,6 +16,7 @@ impl Routine for RandomWalkRoutine {
         result: IntentionCompleted,
         map: &Reality,
         entity: Entity,
+        communication: &Communicator,
         dt: f32,
     ) {
         match result {
@@ -30,7 +31,7 @@ impl Routine for RandomWalkRoutine {
             IntentionCompleted::None => (),
             IntentionCompleted::Failure => {
                 let mut mov = RandomStepRoutine;
-                mov.get_processing_fn(sanity, result, map, entity, dt);
+                mov.get_processing_fn(sanity, result, map, entity, communication, dt);
             },
         }
     }
@@ -46,6 +47,7 @@ impl Routine for RandomStepRoutine {
         result: IntentionCompleted,
         map: &Reality,
         _entity: Entity,
+        _communication: &Communicator,
         _dt: f32,
     ) {
         match result {

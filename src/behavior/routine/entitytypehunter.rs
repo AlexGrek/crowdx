@@ -15,10 +15,7 @@ use comfy::Entity;
 use crate::{
     behavior::{
         carriable::
-            carriablesearch::find_closest_available_with_type
-        ,
-        mental::{IntentionClass, IntentionCompleted},
-        sanity::*,
+            carriablesearch::find_closest_available_with_type, mental::{IntentionClass, IntentionCompleted}, messaging::communication::Communicator, sanity::*
     }, core::position::PsProvider, state::Reality
 };
 
@@ -31,6 +28,7 @@ impl Routine for EntityTypeHunter {
         result: IntentionCompleted,
         map: &Reality,
         entity: Entity,
+        communication: &Communicator,
         dt: f32,
     ) {
         match result {
@@ -62,7 +60,7 @@ impl Routine for EntityTypeHunter {
                     None => {
                         // just move randomly
                         let mut rand = RandomWalkRoutine;
-                        rand.get_processing_fn(sanity, result, map, entity, dt);
+                        rand.get_processing_fn(sanity, result, map, entity, communication, dt);
                     }
                 }
             }

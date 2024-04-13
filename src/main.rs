@@ -284,12 +284,14 @@ impl GameLoop for WorldState {
         updaters::update_conputers(self, c, dt);
         updaters::update_dogs(self, c, dt);
         updaters::update_sane_objects(self, c, dt);
+        updaters::update_sane_objects_pause(self);
         updaters::update_camera(self, c, dt);
         updaters::update_selection(self, c, dt);
         // updaters::update_heatmap(self, c, dt);
         updaters::update_time(self, c, dt);
         updaters::update_human_looks();
         updaters::update_statusbars();
+        updaters::update_communication(self);
     }
 }
 

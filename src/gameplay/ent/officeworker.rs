@@ -1,9 +1,6 @@
 use crate::{
     behavior::{
-        item_types::*,
-        mental::{IntentionClass, IntentionCompleted, PRIORITY_BASE},
-        routine::{gotoroutine::GoToRoutine, randomwalk::RandomStepRoutine},
-        sanity::{Routine, Sanity, SelfAware},
+        item_types::*, mental::{IntentionClass, IntentionCompleted, PRIORITY_BASE}, messaging::communication::Communicator, routine::{gotoroutine::GoToRoutine, randomwalk::RandomStepRoutine}, sanity::{Routine, Sanity, SelfAware}
     },
     core::{
         position::{Ps, PsProvider},
@@ -21,6 +18,7 @@ pub struct OfficeWorkerRoutine {
     walker_routine: GoToRoutine,
     pub assigned_bed: Option<Ps>,
     pub assigned_office: Option<Ps>,
+    pub visible_entities: Vec<Entity> 
 }
 
 #[derive(Debug)]
@@ -103,7 +101,15 @@ fn do_chunk_of_sleep(sanity: &mut Sanity, chunk_size_hours: isize, now: &Time) {
 }
 
 impl OfficeWorkerRoutine {
-    fn sleep(&mut self, sanity: &mut Sanity, map: &Reality, entity: Entity, result: IntentionCompleted, dt: f32) {
+    fn sleep(
+        &mut self,
+        sanity: &mut Sanity,
+        map: &Reality,
+        entity: Entity,
+        result: IntentionCompleted,
+        communication: &Communicator,
+        dt: f32,
+    ) {
         match self.assigned_bed {
             Some(bed) => {
                 let interative = map.interactive.lock();
@@ -116,13 +122,21 @@ impl OfficeWorkerRoutine {
                     do_chunk_of_sleep(sanity, usize::gen_range(1, 2) as isize, &map.time)
                 }
                 self.walker_routine
-                    .get_processing_fn(sanity, result, map, entity, dt);
+                    .get_processing_fn(sanity, result, map, entity, communication, dt);
             }
             None => println!("I want sleep, but no fucking bed!"),
         }
     }
 
-    fn work(&mut self, sanity: &mut Sanity, map: &Reality, entity: Entity, result: IntentionCompleted, dt: f32) {
+    fn work(
+        &mut self,
+        sanity: &mut Sanity,
+        map: &Reality,
+        entity: Entity,
+        result: IntentionCompleted,
+        communication: &Communicator,
+        dt: f32,
+    ) {
         match self.assigned_office {
             Some(office) => {
                 let interative = map.interactive.lock();
@@ -136,7 +150,7 @@ impl OfficeWorkerRoutine {
                     do_chunk_of_work(sanity, usize::gen_range(5, 15) as isize, &map.time)
                 }
                 self.walker_routine
-                    .get_processing_fn(sanity, result, map, entity, dt);
+                    .get_processing_fn(sanity, result, map, entity, communication, dt);
             }
             None => println!("I want work, but no fucking office!"),
         }
@@ -150,23 +164,25 @@ impl Routine for OfficeWorkerRoutine {
         result: IntentionCompleted,
         map: &Reality,
         entity: Entity,
+        communication: &Communicator,
         dt: f32,
     ) {
+        self.visible_entities = communication.find_visible_entities(&map);
         match result {
             IntentionCompleted::Success
             | IntentionCompleted::Failure
             | IntentionCompleted::Undefined => {
                 if is_time_to_sleep(&map.time) {
                     // println!("Sleep {:?} (was {:?})", entity, sanity.mind.mem);
-                    self.sleep(sanity, map, entity, result, dt);
+                    self.sleep(sanity, map, entity, result, communication, dt);
                     return;
                 }
                 if is_time_to_work(&map.time) {
                     // println!("Work {:?} (was {:?})", entity, sanity.mind.mem);
-                    self.work(sanity, map, entity, result, dt);
+                    self.work(sanity, map, entity, result, communication, dt);
                     return;
                 }
-                RandomStepRoutine.get_processing_fn(sanity, result, map, entity, dt);
+                RandomStepRoutine.get_processing_fn(sanity, result, map, entity, communication, dt);
             }
             IntentionCompleted::None => (),
         }
@@ -185,6 +201,7 @@ impl OfficeWorker {
                     walker_routine: GoToRoutine { target: pos },
                     assigned_bed: None,
                     assigned_office: None,
+                    visible_entities: Vec::new()
                 }),
             ),
             look: Look::new(),

@@ -8,12 +8,7 @@ use crate::{
 };
 
 use super::{
-    carriable::carriablesearch::find_closest_available_with_type,
-    creatures::PsOffsetProvider,
-    item_types::{BONE, TRASHCAN},
-    mental::{IntentionClass, IntentionCompleted},
-    routine::entitytypehunter::EntityTypeHunter,
-    sanity::{Sanity, SelfAware},
+    carriable::carriablesearch::find_closest_available_with_type, creatures::PsOffsetProvider, item_types::{BONE, TRASHCAN}, mental::{IntentionClass, IntentionCompleted}, messaging::communication::Communicator, routine::entitytypehunter::EntityTypeHunter, sanity::{Sanity, SelfAware}
 };
 
 #[derive(Debug, Clone)]
@@ -28,6 +23,7 @@ impl super::sanity::Routine for DogRoutine {
         result: IntentionCompleted,
         map: &Reality,
         entity: Entity,
+        communication: &Communicator,
         dt: f32,
     ) {
         match result {
@@ -54,7 +50,7 @@ impl super::sanity::Routine for DogRoutine {
                     }
                 } else if sanity.no_intentions_left() {
                     self.hunter
-                        .get_processing_fn(sanity, result, map, entity, dt)
+                        .get_processing_fn(sanity, result, map, entity, communication, dt)
                 }
             }
             IntentionCompleted::None => (),

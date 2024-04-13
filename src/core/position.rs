@@ -1,6 +1,6 @@
 use core::fmt;
 
-use comfy::{num_traits::ToPrimitive, IVec2, Vec2};
+use comfy::{num_traits::ToPrimitive, vec2, IVec2, Vec2};
 
 #[derive(Copy, Clone, PartialEq, Eq, comfy::Hash)]
 pub struct Ps {
@@ -62,6 +62,37 @@ impl Ps {
         let diffx = self.x.abs_diff(other.x);
         let diffy = self.y.abs_diff(other.y);
         return (diffx + diffy).to_i32().unwrap();
+    }
+
+    pub fn distance_to(&self, other: &dyn PsProvider) -> Vec2 {
+        let diffx = other.get_current_ps().x as f32 - self.x as f32;
+        let diffy = other.get_current_ps().y as f32 - self.y as f32;
+        return vec2(diffx, diffy);
+    }
+
+    pub fn distance_to_normalize(&self, other: &dyn PsProvider) -> Vec2 {
+        let distance = self.distance_to(other);
+        let normal = crate::utils::basic::max_ignore_nan(distance[1].abs(), distance[0].abs());
+        let normalized = vec2(distance[0] /  normal, distance[1] / normal);
+        return normalized;
+    }
+
+    pub fn with_normalized_change(&self, change: Vec2, threshold: f32) -> Ps {
+        let mut copy = self.clone();
+        // x
+        if change[0].abs() > threshold {
+            let sign = change[0].signum() as isize;
+            copy.x = (sign + copy.x as isize) as usize;
+        }
+        // y
+        if change[1].abs() > threshold {
+            let sign = change[1].signum() as isize;
+            copy.y = (sign + copy.y as isize) as usize;
+        }
+        if self.eq(&copy) {
+            panic!("Same ps produced by {:?}.with_normalized_change({:?}, {})", self, change, threshold);
+        }
+        return copy;
     }
 }
 
@@ -146,6 +177,12 @@ impl XYprovider for PsSigned {
 
 pub trait PsProvider {
     fn get_current_ps(&self) -> Ps;
+}
+
+impl PsProvider for Ps {
+    fn get_current_ps(&self) -> Ps {
+        return self.clone();
+    }
 }
 
 pub trait PsSignedProvider {

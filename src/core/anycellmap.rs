@@ -26,6 +26,10 @@ impl<T> AnyCellmap<T> where T: Clone {
         self.map = vec![init_value; width * height]
     }
 
+    pub fn reset(&mut self, init_value: T) {
+        self.map = vec![init_value; self.width * self.height]
+    }
+
     pub fn wh_usize(&self) -> (usize, usize) {
         return (self.width, self.height);
     }

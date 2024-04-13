@@ -1,6 +1,6 @@
 use comfy::Entity;
 
-use crate::{behavior::{mental::IntentionCompleted, sanity::{Routine, Sanity}}, core::position::Ps, state::Reality};
+use crate::{behavior::{mental::IntentionCompleted, messaging::communication::Communicator, sanity::{Routine, Sanity}}, core::position::Ps, state::Reality};
 
 use super::randomwalk::RandomStepRoutine;
 
@@ -17,6 +17,7 @@ impl Routine for GoToRoutine {
         result: IntentionCompleted,
         map: &Reality,
         entity: Entity,
+        communication: &Communicator,
         dt: f32,
     ) {
         // println!("GoToRoutine: {:?} {:?}", entity, result);
@@ -32,7 +33,7 @@ impl Routine for GoToRoutine {
             IntentionCompleted::Failure => {
                 let mut mov = RandomStepRoutine;
                 // println!("Random step: {:?} {:?}", entity, result);
-                mov.get_processing_fn(sanity, result, map, entity, dt);
+                mov.get_processing_fn(sanity, result, map, entity, communication, dt);
             },
         }
     }
